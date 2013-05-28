@@ -27,7 +27,7 @@ Merging <- function(gselist,STL,duplication.checker){
   #Rearranging the expression matrix
   for (i in 1:length(gselist)){
     temp <- matrix(NA,length(expr.rowname),ncol(exprs(gselist[[i]])))
-    rownames(temp) <- as.vector(paste("geneid",featureData(gselist[[i]])@data[,1],sep="_"))
+    rownames(temp) <- as.vector(paste("geneid",featureData(gselist[[i]])@data[,1],sep="."))
     colnames(temp) <- colnames(exprs(gselist[[i]]))    
     matcher <- match(rownames(exprs(gselist[[i]])),expr.rowname)  
     temp[matcher,1:ncol(exprs(gselist[[i]]))]=exprs(gselist[[i]])
