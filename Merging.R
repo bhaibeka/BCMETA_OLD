@@ -74,6 +74,7 @@ Merging <- function(gselist,STL,duplication.checker){
   }
   
   #Creating master phenoData matrix and master subtype matrix
+  if (duplication.checker==FALSE){GSM.erase <- NULL}
   matrix.phenoData <- NULL 
   matrix.subtype <- NULL
   for (i in 1:length(gselist)){  
