@@ -1,10 +1,10 @@
 rm(list=ls())
 ptm <- proc.time()
-source(file.path("/stockage/homes/bachanp/OpenDataset2.R"))
+source(file.path("/stockage/homes/bachanp/Function/OpenDataset2.R"))
 gselist <- OpenDataset2(config.fil="GSE_Curation.csv")
-source(file.path("/stockage/homes/bachanp/SubtypeClassification.R"))
+source(file.path("/stockage/homes/bachanp/Function/SubtypeClassification.R"))
 STL <- SubtypeClassification(gselist=gselist, config.file="GSE_Curation.csv")
-source(file.path("/stockage/homes/bachanp/Merging.R"))
+source(file.path("/stockage/homes/bachanp/Function/Merging.R"))
 master.eset <- Merging(gselist=gselist, STL=STL, duplication.checker=TRUE)
 
 #This shall be replace when the survivalscore function will be operational
@@ -18,7 +18,7 @@ for (i in 1:4){
   survival.score.list[[i]] <- ranking
 }
 ##########################################################################
-source(file.path("/stockage/homes/bachanp/GseaAnalysis.R"))
+source(file.path("/stockage/homes/bachanp/Function/GseaAnalysis.R"))
 gsea.output <- GseaAnalysis(survival.score.list=survival.score.list,gmt.file="c2.all.v3.1.entrez.gmt",matrix.subtype=matrix.subtype)
 
 proc.time() - ptm
