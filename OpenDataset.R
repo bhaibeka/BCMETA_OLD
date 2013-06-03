@@ -18,7 +18,7 @@ OpenDataset <- function(config.file,duplication.checker){
   #     gene expression matrix
   
     
-  library(inSilicoDb2)  
+  require(inSilicoDb2)  
   InSilicoLogin(login="bhaibeka@gmail.com", password="747779bec8a754b91076d6cc1f700831")
   #File.To.Open (FTO)
   FTO <- read.csv(config.file) 

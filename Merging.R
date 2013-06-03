@@ -1,4 +1,4 @@
-Merging <- function(gselist, STL, duplication.checker, checker){
+Merging <- function(gselist, STL, duplication.checker=TRUE, survdata=c("rfs", "dmfs", "dfs", "os"), time.cens=10){
   #Open every GSE, specify in the configuration CSV, from InsilicoDB and create a list of Eset
   #structure call gselist
   #
@@ -9,14 +9,17 @@ Merging <- function(gselist, STL, duplication.checker, checker){
   #   duplication.checker: A marker, either TRUE or FALSE if you you want to verify
   #                        wheter or not you have duplicate sample into your master 
   #                        gene expression matrix.
-  #   checker: For t.fs and e.fs
+  #   survdata: For t.fs and e.fs
+  #   time.cens: maximum follow up (years)
   # Returns:     
   #     The merging eset
   
-  
+  require(Biobase)
+  require(survcomp)
+  survdata <- match.arg(survdata)
   expr.rowname <- NULL
   gene.id <- NULL
-  for (i in 1:length(gselist)){
+  for (i in 1:length(gselist)) {
     expr.rowname <- c(expr.rowname, rownames(exprs(gselist[[i]])))
     gene.id <- c(gene.id, Biobase::featureData(gselist[[i]])$ENTREZID)
   }
@@ -26,29 +29,25 @@ Merging <- function(gselist, STL, duplication.checker, checker){
   colnames(matrix.featureData) <- c("ENTREZID", "SYMBOL")
   
   #Rearranging the expression matrix
-  for (i in 1:length(gselist)){
+  matrix.exprs <- NULL
+  for (i in 1:length(gselist)) {
     temp <- matrix(NA,length(expr.rowname),ncol(exprs(gselist[[i]])))
-    rownames(temp) <- as.vector(paste("geneid",Biobase::featureData(gselist[[i]])@data[,1],sep="_"))
+    rownames(temp) <- as.vector(paste("geneid",Biobase::featureData(gselist[[i]])@data[,1],sep="."))
     colnames(temp) <- colnames(exprs(gselist[[i]]))    
     matcher <- match(rownames(exprs(gselist[[i]])),expr.rowname)  
     temp[matcher,1:ncol(exprs(gselist[[i]]))]=exprs(gselist[[i]])
-    if (i==1){
-      matrix.exprs <- temp
-    } else{
-      matrix.exprs <- cbind(matrix.exprs,temp)
-    }
+    matrix.exprs <- cbind(matrix.exprs, temp)
   }
 
   # Find duplicate option
-  if (duplication.checker==TRUE){
-    gene.treshold <- 3000
-    gene.var <- apply(matrix.exprs,1,var)
+  if (duplication.checker){
+    gene.treshold <- 1000
+    gene.var <- apply(matrix.exprs, 1, var)
     #Most.Varian.Gene (MVG)
-    MVG <- names(sort(gene.var, decreasing=TRUE)[1:gene.treshold])
-    index <- match(MVG,rownames(matrix.exprs))
+    index <- order(gene.var, decreasing=TRUE)[1:gene.treshold]
     #Matrix.of.Most.Variable.Gene (MMVG)
-    MMVG <- matrix.exprs[index,]
-    cor.matrix <- cor(MMVG) 
+    MMVG <- matrix.exprs[index, , drop=FALSE]
+    cor.matrix <- cor(MMVG, method="spearman", use="pairwise.complete.obs")
     ending <- ncol(cor.matrix)
     temp1 <- matrix.exprs
     temp2 <- cor.matrix
@@ -58,15 +57,15 @@ Merging <- function(gselist, STL, duplication.checker, checker){
     for (i in 1:ending){
       if (!any(DEC == colnames(cor.matrix)[i])){
         #Duplicate.Checker (DC)
-        DC <- which(cor.matrix[,i]>0.95 & cor.matrix[,i]<0.999)
-        if (length(DC)!=0){
-          print(sprintf("%s is a duplicate of %s",colnames(cor.matrix)[i],rownames(cor.matrix)[DC]))
+        DC <- which(cor.matrix[ , i] >= 0.95)
+        if (length(DC) != 0){
+          message(sprintf("%s is a duplicate of %s", colnames(cor.matrix)[i], rownames(cor.matrix)[DC]))
           DEC <- c(DEC, rownames(cor.matrix)[DC])        
           GSM.erase <- c(GSM.erase, (colnames(cor.matrix)[i]))
           #Index.to.Delete (ID)
-          ID <- which(colnames(temp1)==colnames(cor.matrix)[i])
-          temp1 <- temp1[,-ID]        
-          temp2 <- temp2[-i, -i]                  
+          ID <- which(colnames(temp1) == colnames(cor.matrix)[i])
+          temp1 <- temp1[ , -ID, drop=FALSE]
+          temp2 <- temp2[-i, -i, drop=FALSE]        
         }
       }
     }
@@ -75,7 +74,7 @@ Merging <- function(gselist, STL, duplication.checker, checker){
   }
   
   #Creating master phenoData matrix and master subtype matrix
-  if (duplication.checker==FALSE){GSM.erase <- NULL}
+  if (duplication.checker){ GSM.erase <- NULL }
   matrix.phenoData <- NULL 
   matrix.subtype <- NULL
   for (i in 1:length(gselist)){  
@@ -83,35 +82,40 @@ Merging <- function(gselist, STL, duplication.checker, checker){
     matrix.subtype <- rbind(matrix.subtype, STL[[i]])
   }   
   
-  #Creating the t.fs hybrid  
-  if (checker==TRUE){    
-    t.fs <- NULL
-    e.fs <- NULL
-    index.rfs <- which(colnames(matrix.phenoData)=="t.rfs")
-    index.dmfs <- which(colnames(matrix.phenoData)=="t.dmfs") 
-    index.erfs <- which(colnames(matrix.phenoData)=="e.rfs")
-    index.edmfs <- which(colnames(matrix.phenoData)=="e.dmfs")
-    for (i in 1:nrow(matrix.phenoData)){
-      if (matrix.phenoData[i,index.dmfs]=="NA"){
-        t.fs <- c(t.fs, matrix.phenoData[i,index.rfs])
-        e.fs <- c(e.fs, matrix.phenoData[i,index.erfs])
-      }else{
-        t.fs <- c(t.fs, matrix.phenoData[i,index.dmfs])
-        e.fs <- c(e.fs, matrix.phenoData[i,index.edmfs])
-      }
+  #Collecting the survival data
+  surv.time <- surv.event <- rep(NA, nrow(matrix.phenoData))
+  names(surv.time) <- names(surv.event) <- rownames(matrix.phenoData)
+  switch (survdata,
+    "rfs"={
+      surv.time <- matrix.phenoData[ , "t.rfs"]
+      surv.event <- matrix.phenoData[ , "e.rfs"]
+    },
+    "dmfs"={
+      surv.time <- matrix.phenoData[ , "t.dmfs"]
+      surv.event <- matrix.phenoData[ , "e.dmfs"]
+    },
+    "os"={
+      surv.time <- matrix.phenoData[ , "t.os"]
+      surv.event <- matrix.phenoData[ , "e.os"]
+    },
+    "dfs"={
+      #hybrid between rfs and dmfs
+      #use rfs when available, dmfs otherwise
+      surv.time <- matrix.phenoData[ , "t.rfs"]
+      surv.time[is.na(matrix.phenoData[ , "t.rfs"])] <- matrix.phenoData[is.na(matrix.phenoData[ , "t.rfs"]), "t.dmfs"]
+      surv.event <- matrix.phenoData[ , "e.rfs"]
+      surv.event[is.na(matrix.phenoData[ , "e.rfs"])] <- matrix.phenoData[is.na(matrix.phenoData[ , "e.rfs"]), "e.dmfs"]
     }
-    matrix.phenoData <- cbind(matrix.phenoData, t.fs, e.fs)
-  }
-  # Rearranging the master phenoData matrix
+  )
+  ss <- survcomp::censor.time(surv.time=surv.time / 365, surv.event=surv.event, time.cens=10)
+  matrix.phenoData <- cbind(matrix.phenoData, "surv.time"=ss[[1]], "surv.event"=ss[[2]])
+  
+  #Rearranging the master phenoData matrix
   index <- match(GSM.erase, rownames(matrix.phenoData))
-  for (i in index){
-    matrix.phenoData <- matrix.phenoData[-i,]
-  }  
-  # Rearranging the master subtype matrix
+  matrix.phenoData <- matrix.phenoData[-index, , drop=FALSE]  
+  #Rearranging the master subtype matrix
   index <- match(GSM.erase, rownames(matrix.subtype))
-  for (i in index){
-    matrix.subtype <- matrix.subtype[-i,]
-  }  
+  matrix.subtype <- matrix.subtype[-index, , drop=FALSE]
   
   #Creating all the AnnotadeDataFrame to implement in the master eSet
   matrix.phenoData <- cbind(matrix.phenoData,matrix.subtype)

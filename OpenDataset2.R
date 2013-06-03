@@ -1,4 +1,4 @@
-OpenDataset2 <- function(config.file, rescale.checker){
+OpenDataset2 <- function(config.file, rescale=FALSE){
   #Open every GSE, specify in the configuration CSV, from InsilicoDB and create a list of Eset
   #structure call gselist
   #
@@ -11,7 +11,9 @@ OpenDataset2 <- function(config.file, rescale.checker){
   #     The GSE list of the specify GSE number in the configuraiton CSV file 
   
   
-  library(inSilicoDb2)  
+  require(inSilicoDb2)
+  require(genefu)
+  #login
   InSilicoLogin(login="bhaibeka@gmail.com", password="747779bec8a754b91076d6cc1f700831")
   #File.To.Open (FTO)
   FTO <- read.csv(config.file) 
@@ -22,18 +24,17 @@ OpenDataset2 <- function(config.file, rescale.checker){
   for (i in 16:nrow(FTO)){
     if (as.character(FTO[i,4])==TRUE){    
       GPL <- getPlatforms(dataset=as.character(FTO[i,2]))[1]
-      gselist[[counter]] <- getDataset(dataset=as.character(FTO[i,2]), curation=FTO[i,3], platform=GPL)      
+      gselist[[counter]] <- getDataset(dataset=as.character(FTO[i,2]), curation=FTO[i,3], platform=GPL)  
       counter <- counter+1
     }
-  }       
-  if (rescale.checker==TRUE){
-    for (i in 1:length(gselist)){
-      exprs(gselist[[i]]) <- ((apply(exprs(gselist[[i]]),1,function(x) {genefu::rescale(x,q=0.05)}))-0.5)*2
-      exprs(gselist[[i]]) <- t(exprs(gselist[[i]]))    
+  }
+  #rescale each dataset individually     
+  if (rescale.checker) {
+    for (i in 1:length(gselist)) {
+      exprs(gselist[[i]]) <- t(((apply(exprs(gselist[[i]]), 1, function(x) { return(genefu::rescale(x, q=0.05, na.rm=TRUE)) })) - 0.5) * 2)
     }
-  }  
-
-    
+  }
+  #logout
   InSilicoLogout() 
   return(gselist)
 }

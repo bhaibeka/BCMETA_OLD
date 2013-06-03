@@ -8,12 +8,12 @@ SubtypeClassification <- function(gselist, config.file){
   # Returns:
   #   A list containing all of the classification with the probability matrix for each dataset
   
-  library(genefu)
+  require(genefu)
   # Error handling
   FTO <- read.csv(config.file)
   model <- as.character(FTO[3,2])  
   accepted.model <- c("ssp2003.robust","ssp2006.robust","pam50","scmgene.robust","scmod1.robust","scmod2.robust")
-  if (!any(model==accepted.model)){
+  if (!any(model == accepted.model)){
     stop("The model is invalid")
   }
   
@@ -31,7 +31,7 @@ SubtypeClassification <- function(gselist, config.file){
     
     #Depending on the model we use either prediction function
     accepted.intrinsic.model <- c("ssp2003.robust","ssp2006.robust","pam50")
-    if (any(model==accepted.intrinsic.model)){
+    if (any(model == accepted.intrinsic.model)){
       subtype <- intrinsic.cluster.predict(sbt.model=eval(parse(text=model)), data=data, annot=mapping, do.mapping=TRUE, do.prediction.strength=FALSE)
       matrix_sub <- matrix(cbind(subtype$subtype,subtype$subtype.proba),length(subtype$subtype),ncol(cbind(subtype$subtype,subtype$subtype.proba)))
       } else {
