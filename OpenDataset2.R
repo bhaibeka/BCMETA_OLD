@@ -31,7 +31,9 @@ OpenDataset2 <- function(config.file, rescale.checker){
       exprs(gselist[[i]]) <- ((apply(exprs(gselist[[i]]),1,function(x) {genefu::rescale(x,q=0.05)}))-0.5)*2
       exprs(gselist[[i]]) <- t(exprs(gselist[[i]]))    
     }
-  }
+  }  
+
+    
   InSilicoLogout() 
   return(gselist)
 }

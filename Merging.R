@@ -1,4 +1,4 @@
-Merging <- function(gselist,STL,duplication.checker){
+Merging <- function(gselist, STL, duplication.checker, checker){
   #Open every GSE, specify in the configuration CSV, from InsilicoDB and create a list of Eset
   #structure call gselist
   #
@@ -9,6 +9,7 @@ Merging <- function(gselist,STL,duplication.checker){
   #   duplication.checker: A marker, either TRUE or FALSE if you you want to verify
   #                        wheter or not you have duplicate sample into your master 
   #                        gene expression matrix.
+  #   checker: For t.fs and e.fs
   # Returns:     
   #     The merging eset
   
@@ -17,7 +18,7 @@ Merging <- function(gselist,STL,duplication.checker){
   gene.id <- NULL
   for (i in 1:length(gselist)){
     expr.rowname <- c(expr.rowname, rownames(exprs(gselist[[i]])))
-    gene.id <- c(gene.id, featureData(gselist[[1]])$ENTREZID)
+    gene.id <- c(gene.id, Biobase::featureData(gselist[[i]])$ENTREZID)
   }
   expr.rowname <- unique(expr.rowname)
   gene.id <- unique(gene.id)
@@ -27,7 +28,7 @@ Merging <- function(gselist,STL,duplication.checker){
   #Rearranging the expression matrix
   for (i in 1:length(gselist)){
     temp <- matrix(NA,length(expr.rowname),ncol(exprs(gselist[[i]])))
-    rownames(temp) <- as.vector(paste("geneid",featureData(gselist[[i]])@data[,1],sep="."))
+    rownames(temp) <- as.vector(paste("geneid",Biobase::featureData(gselist[[i]])@data[,1],sep="_"))
     colnames(temp) <- colnames(exprs(gselist[[i]]))    
     matcher <- match(rownames(exprs(gselist[[i]])),expr.rowname)  
     temp[matcher,1:ncol(exprs(gselist[[i]]))]=exprs(gselist[[i]])
@@ -37,7 +38,7 @@ Merging <- function(gselist,STL,duplication.checker){
       matrix.exprs <- cbind(matrix.exprs,temp)
     }
   }
-  
+
   # Find duplicate option
   if (duplication.checker==TRUE){
     gene.treshold <- 3000
@@ -81,6 +82,26 @@ Merging <- function(gselist,STL,duplication.checker){
     matrix.phenoData <- rbind(matrix.phenoData, as.matrix(pData(gselist[[i]])))    
     matrix.subtype <- rbind(matrix.subtype, STL[[i]])
   }   
+  
+  #Creating the t.fs hybrid  
+  if (checker==TRUE){    
+    t.fs <- NULL
+    e.fs <- NULL
+    index.rfs <- which(colnames(matrix.phenoData)=="t.rfs")
+    index.dmfs <- which(colnames(matrix.phenoData)=="t.dmfs") 
+    index.erfs <- which(colnames(matrix.phenoData)=="e.rfs")
+    index.edmfs <- which(colnames(matrix.phenoData)=="e.dmfs")
+    for (i in 1:nrow(matrix.phenoData)){
+      if (matrix.phenoData[i,index.dmfs]=="NA"){
+        t.fs <- c(t.fs, matrix.phenoData[i,index.rfs])
+        e.fs <- c(e.fs, matrix.phenoData[i,index.erfs])
+      }else{
+        t.fs <- c(t.fs, matrix.phenoData[i,index.dmfs])
+        e.fs <- c(e.fs, matrix.phenoData[i,index.edmfs])
+      }
+    }
+    matrix.phenoData <- cbind(matrix.phenoData, t.fs, e.fs)
+  }
   # Rearranging the master phenoData matrix
   index <- match(GSM.erase, rownames(matrix.phenoData))
   for (i in index){
@@ -90,14 +111,15 @@ Merging <- function(gselist,STL,duplication.checker){
   index <- match(GSM.erase, rownames(matrix.subtype))
   for (i in index){
     matrix.subtype <- matrix.subtype[-i,]
-  }
+  }  
+  
   #Creating all the AnnotadeDataFrame to implement in the master eSet
   matrix.phenoData <- cbind(matrix.phenoData,matrix.subtype)
-  colnames(matrix.exprs) <- row.names(matrix.phenoData)   
-  phenoData <- new("AnnotatedDataFrame", data=data.frame(matrix.phenoData), varMetadata=data.frame(labelDescription=c(varLabels(gselist[[1]]),colnames(matrix.subtype))))
+  colnames(matrix.exprs) <- rownames(matrix.phenoData)     
+  phenoData <- new("AnnotatedDataFrame", data=data.frame(matrix.phenoData), varMetadata=data.frame(labelDescription=colnames(matrix.phenoData)))
   featureData <- new("AnnotatedDataFrame", data=data.frame(matrix.featureData), varMetadata=data.frame(labelDescription=c("EntrezID","Symbol")))
   master.eset <- new("ExpressionSet", phenoData = phenoData, exprs = matrix.exprs)
-  featureData(master.eset) <- featureData
+  Biobase::featureData(master.eset) <- featureData
   
   return(master.eset)
 }
