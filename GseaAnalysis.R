@@ -17,9 +17,8 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
   #
   # Returns:
   #   In return the GSEA analysis containing all the useful informations in the specify pathway      
-  if(missing(gmt.file)) {gmt.file <- "c2.all.v3.1.entrez.gmt"}
+  if(missing(gmt.file)) {gmt.file <- "c2.all.v3.1.entrez.gmt"}  
   
-  gmt.file <- "c2.all.v3.1.entrez.gmt"  
   
   #In order to create the pathway for the survival score rnk file.
   working.directory <- getwd()
@@ -27,8 +26,9 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
   rank.files <- NULL
   for (i in 1:length(survival.score.list)){
     ranking.matrix <- survival.score.list[[i]]
-    gene.id <- sapply(rownames(survival.score.list[[i]]), function(x){strsplit(x, "\\_")[[1]][2]})
-    ranking <- cbind(gene.id, ranking.matrix[,1])
+    gene.id <- sapply(rownames(survival.score.list[[i]]), function(x){strsplit(x, "\\.")[[1]][2]})
+    score <- -log10(survival.score.list[[i]][,3])*sign(survival.score.list[[i]][,1]-0.5)
+    ranking <- cbind(gene.id, score)
     colnames(ranking) <- c("EntrezGene.ID","Survival score")
     #temp <- colnames(matrix.subtype)[i+1]
     temp <- i
@@ -41,7 +41,7 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
   dir.create(file.path(working.directory, "saveres2", "GSEA", "reports"), recursive=TRUE, showWarnings=FALSE)
   source(file.path(working.directory, "foo.R"))
   gsea.exec <- file.path(working.directory, "gsea2-2.0.12.jar")
-  gsea.nperm <- 10
+  gsea.nperm <- 1000
   min.geneset.size <- 15
   max.geneset.size <- 500
   genesets.filen <- file.path(working.directory,gmt.file)
@@ -49,7 +49,7 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
   
   #Applying GSEA function on all the file 
   #Setting every parallelizing parameter
-  nbcore <- 4
+  nbcore <- length(survival.score.list)
   availcore <- detectCores()
   if(nbcore > availcore) { nbcore <- availcore }
   options("mc.cores"=nbcore)
@@ -61,7 +61,7 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
     tt <- gseatt[[1]]  
     ## leading edge genes
     tt2 <- gseatt[[2]][!sapply(gseatt[[2]], is.null)]
-    tt2 <- lapply(tt2, function(x) { return(paste("geneid", x, sep="_")) })
+    tt2 <- lapply(tt2, function(x) { return(paste("geneid", x, sep=".")) })
     return(list("geneset.res"=tt, "geneset.core"=tt2))
   }, rank.files=rank.files, gsea.exec=gsea.exec, genesets.filen=genesets.filen, gsea.nperm=gsea.nperm, max.geneset.size=max.geneset.size, min.geneset.size=min.geneset.size, gsea.out=gsea.out)
   names(gsea.res) <- names(rank.files)

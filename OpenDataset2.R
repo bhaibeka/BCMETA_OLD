@@ -25,11 +25,12 @@ OpenDataset2 <- function(config.file, rescale=FALSE){
     if (as.character(FTO[i,4])==TRUE){    
       GPL <- getPlatforms(dataset=as.character(FTO[i,2]))[1]
       gselist[[counter]] <- getDataset(dataset=as.character(FTO[i,2]), curation=FTO[i,3], platform=GPL)  
+      
       counter <- counter+1
     }
   }
   #rescale each dataset individually     
-  if (rescale.checker) {
+  if (rescale) {
     for (i in 1:length(gselist)) {
       exprs(gselist[[i]]) <- t(((apply(exprs(gselist[[i]]), 1, function(x) { return(genefu::rescale(x, q=0.05, na.rm=TRUE)) })) - 0.5) * 2)
     }
