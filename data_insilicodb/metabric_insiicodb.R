@@ -57,6 +57,16 @@ rownames(datage) <- rownames(annotge)
 colnames(datage) <- gsub(badchars, "", colnames(datage))
 datage <- data.matrix(datage)
 
+## create an eSet
+message(sprintf("Creation of an eSet for dataset %s", toupper(ddn)))
+eset <- ExpressionSet(assayData=datage, phenoData=AnnotatedDataFrame(data=sampleinfo), featureData=AnnotatedDataFrame(annotge))
+experimentData(eset)@preprocessing <- list("normalization"="ORIGINAL", package="illuminaHT12v3", version="0")
+annotation(eset) <- "illuminaHT12v3"
+## object name
+objn <- sprintf("%sORIGINALPROBE", toupper(ddn))
+assign(objn, eset)
+save(list=objn, compress=TRUE, file=file.path(toupper(ddn), sprintf("%s.RData", objn)))
+
 ## create individual eSets
 for(i in 1:nrow(sampleinfo)) {
   message(sprintf("Creation of an eSet for sample %s", rownames(sampleinfo)[i]))

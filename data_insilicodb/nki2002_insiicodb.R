@@ -1,3 +1,4 @@
+rm(list=ls())
 
 library(survcomp)
 library(genefu)
@@ -54,6 +55,16 @@ datage <- read.csv(file.path(toupper(ddn), sprintf("data_%s.csv", tolower(ddn)))
 rownames(datage) <- rownames(annotge)
 colnames(datage) <- gsub(badchars, "", colnames(datage))
 datage <- data.matrix(datage)
+
+## create an eSet
+message(sprintf("Creation of an eSet for dataset %s", toupper(ddn)))
+eset <- ExpressionSet(assayData=datage, phenoData=AnnotatedDataFrame(data=sampleinfo), featureData=AnnotatedDataFrame(annotge))
+experimentData(eset)@preprocessing <- list("normalization"="ORIGINAL", package="agilentRosetta", version="0")
+annotation(eset) <- "agilentRosetta"
+## object name
+objn <- sprintf("%sORIGINALPROBE", toupper(ddn))
+assign(objn, eset)
+save(list=objn, compress=TRUE, file=file.path(toupper(ddn), sprintf("%s.RData", objn)))
 
 ## create individual eSets
 for(i in 1:nrow(sampleinfo)) {
