@@ -1,3 +1,4 @@
 cache/
 test/
 old/
+data_insilicodb/*.RData
