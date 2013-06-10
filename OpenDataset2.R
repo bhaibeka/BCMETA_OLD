@@ -16,18 +16,31 @@ OpenDataset2 <- function(config.file, rescale=FALSE){
   #login
   InSilicoLogin(login="bhaibeka@gmail.com", password="747779bec8a754b91076d6cc1f700831")
   #File.To.Open (FTO)
-  FTO <- read.csv(config.file) 
-  #FTO <- read.csv("GSE_Curation.csv")
+  FTO <- read.csv(config.file)   
   gselist <- list() 
-  counter <- 1
+  load("~/NKIORIGINALPROBE.RData")
+  load("~/METABRICORIGINALPROBE.RData")
+  gselist[[1]] <- METABRICORIGINALPROBE
+  phenoData(gselist[[1]])@data <- cbind(phenoData(gselist[[1]])@data, rep("GPL6947",nrow(phenoData(gselist[[1]])@data)))
+  colnames(phenoData(gselist[[1]])@data)[length(colnames(phenoData(gselist[[1]])@data))] <- "platform"
+  gselist[[2]]<- NKIORIGINALPROBE
+  colnames(phenoData(gselist[[2]])@data)[length(colnames(phenoData(gselist[[2]])@data))] <- "platform"
+  phenoData(gselist[[2]])@data[length(phenoData(gselist[[2]])@data)] <- "AGIR"
+  counter <- 3
+  
   #Opening all dataset from InsilicoDB
   for (i in 16:nrow(FTO)){
     if (as.character(FTO[i,4])==TRUE){    
       GPL <- getPlatforms(dataset=as.character(FTO[i,2]))[1]
-      gselist[[counter]] <- getDataset(dataset=as.character(FTO[i,2]), curation=FTO[i,3], platform=GPL)  
-      
+      gselist[[counter]] <- getDataset(dataset=as.character(FTO[i,2]), curation=FTO[i,3], platform=GPL)        
       counter <- counter+1
     }
+  }
+  #Making sure that every rownames for matrix expression is well geneid.#####
+  #and that every column of the clinical data matrix is well aligned for every GSE dataset
+  for (i in 1:length(gselist)){
+    rownames(exprs(gselist[[i]])) <- paste("geneid.",as.vector(Biobase::featureData(gselist[[i]])$ENTREZID),sep="")
+    phenoData(gselist[[i]])@data<- phenoData(gselist[[i]])@data[,match(colnames(phenoData(gselist[[1]])@data),colnames(phenoData(gselist[[i]])@data))]    
   }
   #rescale each dataset individually     
   if (rescale) {
