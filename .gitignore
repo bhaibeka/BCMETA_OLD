@@ -2,3 +2,6 @@ cache/
 test/
 old/
 data_insilicodb/*.RData
+data_insilicodb/METABRIC
+data_insilicodb/NKI
+
