@@ -5,7 +5,7 @@
 GSEA analysis
 }
 \description{
-A function that calls the java GSEA tool. It required a gmt input file containing all the gene that the user which to analyse. The function then call the java tool and run the enrichement analysis for every molecular subtype and test the user's gene set against a collection of 1000 random gene set enrichement scores for significance handing out the enrichement p value.
+A function that calls the java GSEA tool. It required a gmt input file containing all the gene that the user which to analyse. The function then calls the java tool and run the enrichement analysis for every molecular subtype and test the user's gene set against a collection of 1000 random enrichement scores for significance, thus handing out the enrichement p value.
 }
 \usage{
 GseaAnalysis(survival.score.list, gmt.file, matrix.subtype)
@@ -23,7 +23,7 @@ A simple matrix containing every molecular subtype weight information for every 
 }
 }
 \details{
-This function required many pathway information in order to work properly. Must importanly the user must have in is disposition the GSEA java tool (gsea2-2.0.12.jar) in his working directory. The function will generated many folder (one for each molecular subtype) containing the GSEA analysis. If the user which to rerun the analysis he must absolutely deleted the previously generated folder. Otherwise, the java tool will return and error saying that the file already exist and will not remake the analysis.
+This function required many pathway information in order to work properly. Most importanly the user must have in his disposition the GSEA java tool (gsea2-2.0.12.jar) in his working directory. The function will generated many folder (one for each molecular subtype) containing the GSEA analysis. If the user which to rerun the analysis he must absolutely deleted the previously generated folder. Otherwise, the java tool will return and error saying that the file already exist and will not launch the analysis.
 }
 \value{
 All the information should be in the generated folder.
