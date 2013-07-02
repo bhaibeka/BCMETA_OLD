@@ -5,7 +5,7 @@
 Random Gene Permutation Analysis
 }
 \description{
-The function seek out the calculate to random P value. It will generated a metagene out of the user's gene set and compare its prognostic P value against a thousand random gene set. It will then calculate how much random gene set have a better P value than the user's gene set and hand out what we call the significance P value or random P value.
+The function seek out to calculate the random P value. It will generated a metagene out of the user's gene set and compare its prognostic P value against a 1000 (or n.perm) random gene set. It will then calculate how much random gene set have a better P value than the user's gene set and hand out what we call the significance P value or random P value.
 }
 \usage{
 RandomPermAnalysis(master.eset, inputfile, method, n.perm)
@@ -22,7 +22,7 @@ a CSV file containing the name of the gene set, the probe, the EntrezGeneID and 
   It's a method use for generating the metagene. Either weigthed average or principal component
 }
   \item{n.perm}{
-number of gene set to this the user's gene set against.
+number of random gene set to test against the user's gene set.
 }
 }
 \details{
@@ -32,7 +32,7 @@ number of gene set to this the user's gene set against.
 
 \item{metagene.ranking.list }{a list containing, for every molecular subtype, a matrix which itself contains 3 columns: metagene Corcondance Index, metagene Standard Deviation and metagene P value}
 \item{metagene.mat }{a list containing, for every molecular subtype, a matrix of gene expression including the metagene's expression}
-\item{prognostic.list}{A summary of how well the user metagene perform against the 1000 random gene set}
+\item{prognostic.list}{A summary of how well the user metagene perform against the 1000 (or n.perm) random gene sets}
 %% ...
 }
 \references{

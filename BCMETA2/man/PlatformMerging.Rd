@@ -5,7 +5,7 @@
 Platform merging
 }
 \description{
-For some GSE expression matrix were measure for different microchip arraw. In order to account for these case, we merge the expression matrix of the concern GSE dataset together to preserved all available information in the same dataset.
+Some GSE expression matrix were measure for two differents microchips array. In order to account for these cases, we merge the expression matrix of the concern GSE dataset together, thus preserving all available information in the same dataset.
 }
 \usage{
 PlatformMerging(gselist, GPL.length)

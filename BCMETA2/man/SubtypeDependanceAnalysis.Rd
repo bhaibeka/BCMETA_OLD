@@ -5,7 +5,7 @@
 Subtype Dependence Analysis
 }
 \description{
-This function verify if a gene set is subtype dependent. In order to do so, it firstly generates a metagene from the user's gene set using a given method. Then, it applies the Kruskal-Wallis test and the Wilcoxson test on the metagene to verify whether it is subtype dependent or not. 
+This function verifies if a gene set is subtype dependent. In order to do so, it firstly generates a metagene from the user's gene set using a specified method. Then, it applies the Kruskal-Wallis test and the Wilcoxson test on the metagene to verify whether it is subtype dependent or not. 
 }
 \usage{
 SubtypeDependanceAnalysis(master.eset, gene.list, inputfile, method)

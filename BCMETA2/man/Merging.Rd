@@ -4,7 +4,7 @@
 Merge eSet.
 }
 \description{
-This function merge two or more eset together while rescaling the gene expression to make it homogyne.
+This function merge two or more eSets together while rescaling the gene expression to make it homogyne.
 }
 \usage{
 Merging(gselist, STL, duplication.checker = TRUE, survdata = c("rfs", "dmfs", "dfs", "os"), time.cens = 10, method)
@@ -27,7 +27,7 @@ Either rfs, dmfs, os or the hybrid for maximum survival data dfs
 The censoring time.
 }
   \item{method}{
-The method of gene merging. Either Unique or Intersect. If method is Unique is selected then every unique gene from all eSet are conserved (Note that NA value will be apply for patient that weren't tested for all gene expression). If method is intersect then the merging expression matrix will only containt gene expression that are present in every dataset. 
+The method of gene merging. Either Unique or Intersect. If Unique is selected then every unique gene from all eSet are conserved (Note that NA value will be apply for patients that have missing gene expressions). If Intersect is selected then the merging expression matrix will only containt gene expressions that are present in every dataset. 
 }
 }
 \details{

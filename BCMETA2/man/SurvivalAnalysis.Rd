@@ -5,7 +5,7 @@
 Survival Analysis
 }
 \description{
-The function calculate the corcondance index and hand out prognostic value for every gene in the specified eSet's matrix expression.
+The function calculates the corcondance index, standard deviation and hand out prognostic value for every gene in the specified eSet's matrix expression.
 }
 \usage{
 SurvivalAnalysis(master.eset)

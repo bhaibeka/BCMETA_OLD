@@ -5,7 +5,7 @@
 Open Dataset
 }
 \description{
-This function allow user to interactively download dataset from the InsilicoDB database. Every database is downloaded as an eSet R structure. The function then create a list containing every eSet structure, while making sure that every eSet is properly curated. 
+This function allows user to interactively download datasets from the InsilicoDB database. Every dataset is downloaded as an eSet R structure. The function then creates a list containing every eSet structure, while making sure that they are properly curated. 
 }
 \usage{
 OpenDataset(config.file)
@@ -13,12 +13,12 @@ OpenDataset(config.file)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{config.file}{
-The configuration file. It's allowed to user to selected which GSE he wants to include is his study
+The configuration file. It allowed the user to selected which GSE he wants to include is his study.
 }
 }
 \details{
--All dataset in InsilicoDB have been previously curated using a very specific curation required for this pipeline to work.
--This function calls 2 subroutines: 1 for the probe-gene-mapping and the other one for merging together dataset that would have been made on different micro-chip platform.
+-All dataset in InsilicoDB have been previously curated using a very specific curation. This curation must be respected in order for this pipeline to work properly.
+-This function calls 2 subroutines: One for the probe-gene-mapping and another one for merging together dataset that would have different micro-chip platform.
 }
 \value{
 Return the eSet list.
@@ -31,7 +31,7 @@ Pierre-Olivier Bachant-Winner
 Benjamin Haibe-Kains
 }
 \note{
-For some combination of GSE we have to call some routine hack to properly merge them. User discretion is advised.
+For some combinations of GSE we have to call some hack routines to properly merge them. User discretion is advised.
 }
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
