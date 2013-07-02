@@ -9,7 +9,7 @@ PlatformMerging <- function(gselist, GPL.length){
   # Returns:     
   #     The GSE which each platform has been merge
   
-  GPL.length=2
+  
   index <- length(gselist)-GPL.length+1
   for (i in 1:GPL.length-1){
     missing.genes <- setdiff(rownames(exprs(gselist[[index+i]])),rownames(exprs(gselist[[index]])))

@@ -1,9 +1,10 @@
-SubtypeDependance <- function(master.eset,gene.list){
+SubtypeDependance <- function(master.eset,gene){
   # Classify GSE subtype and give out the probability of being that subtype
   #
   # Args:
   #   master.eset: A master.eset containing everything
-  #   gene.list : a list of gene which are to be analyze
+  #   gene : a list of gene which are to be analyze, gene= "ALL" if all gene in the master.eset
+  #               are to be consider
   #
   # Returns:
   #   The dependance of a specific gene over the subtype
@@ -11,8 +12,14 @@ SubtypeDependance <- function(master.eset,gene.list){
   ###############################################################################################
   ###########################        Kluskal.Wallis test idea         ########################### 
   ###############################################################################################
-  gene.id <- rownames(exprs(master.eset))
+  if(missing(gene)) {
+    gene.id <- rownames(exprs(master.eset))
+  }
+ 
+  else {gene.id <- as.character(gene)}
+  
   library(parallel)
+  library(lattice)
   
   #Setting every parallelizing parameter
   nbcore <- 8
@@ -76,7 +83,7 @@ SubtypeDependance <- function(master.eset,gene.list){
   comb <- combinations(length(list.index),2)  
   list.coxson <- list()
   name.cox <- c("Basal","Her2","Lums","LumB","LumA","Global")
-  gene.id <- rownames(exprs(master.eset))[1:80]
+  #gene.id <- rownames(exprs(master.eset))[1:80]
   #gene.id <- rownames(exprs(master.eset))
   ###########################################
   #######    Main core function     #########
@@ -105,6 +112,7 @@ SubtypeDependance <- function(master.eset,gene.list){
   colnames(median.matrix) <- c("Gene ID", name.cox)
   rownames(median.matrix) <- gene.id
   
+  
   #######  Wilcoxson matrix core function   #########
   
   Wilcox <- mclapply(splitix, function(splitix2,...){
@@ -131,7 +139,8 @@ SubtypeDependance <- function(master.eset,gene.list){
   colnames(Wilcox) <- matrix.cox.name
   rownames(Wilcox) <- gene.id
   
- 
+ return(list("Kruskal"=Kruskal, "Wilcox"=Wilcox, "median.matrix"=median.matrix))
+}
   
   
   

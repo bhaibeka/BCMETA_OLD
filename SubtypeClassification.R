@@ -39,7 +39,7 @@ SubtypeClassification <- function(gselist, config.file){
     if (any(model==accepted.intrinsic.model)){
       subtype <- intrinsic.cluster.predict(sbt.model=eval(parse(text=model)), data=data, annot=mapping, do.mapping=TRUE, do.prediction.strength=FALSE)
       matrix_sub <- cbind(subtype$subtype, rep(1,nrow(data)), subtype$subtype.proba[ , 3] + subtype$subtype.proba[ , 4], subtype$subtype.proba)
-      colnames(matrix_sub) <- c("subtype", "Global population", "Lums", "Basal", "Her2", "LumB", "LumA") 
+      colnames(matrix_sub) <- c("subtype", "Global population", "Lums", "Basal", "Her2", "LumA", "LumB","Normal") 
       } else {
       subtype <- subtype.cluster.predict(sbt.model=eval(parse(text=model)), data=data, annot=mapping, do.mapping=TRUE, do.prediction.strength=FALSE, do.BIC=FALSE, plot=FALSE)
       matrix_sub <- cbind(subtype$subtype2, rep(1,nrow(data)), subtype$subtype.proba2[ , 3] + subtype$subtype.proba2[ , 4],subtype$subtype.proba2)

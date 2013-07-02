@@ -6,7 +6,7 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
   #       working directory:- gsea2-2.0.12.jar
   #                         - foo.R
   #                         - your specify gmt file or c2.all.v3.1.entrez.gmt (by default)
-  #
+  # 
   # Args:
   #   survival.score.list: A list containing many survival score matrix. Where each matrix is created
   #                        such a way that the first column of each matrix containt the gene's name
@@ -28,9 +28,9 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
     ranking.matrix <- survival.score.list[[i]]
     gene.id <- sapply(rownames(survival.score.list[[i]]), function(x){strsplit(x, "\\.")[[1]][2]})
     score <- -log10(survival.score.list[[i]][,3])*sign(survival.score.list[[i]][,1]-0.5)
+    #score <- survival.score.list[[i]][,1]
     ranking <- cbind(gene.id, score)
-    colnames(ranking) <- c("EntrezGene.ID","Survival score")
-    #temp <- colnames(matrix.subtype)[i+1]
+    colnames(ranking) <- c("EntrezGene.ID","Survival score")    
     temp <- i
     filepath=file.path(working.directory,"saveres2","ranking",paste("ranking_", sprintf("%s.rnk",temp),sep=""))
     write.table(ranking, file=filepath, col.names=FALSE, row.names=FALSE, sep="\t", quote=FALSE)
@@ -38,6 +38,7 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
   }  
   
   #Initializing gsea.prerank function path and parameters
+  
   dir.create(file.path(working.directory, "saveres2", "GSEA", "reports"), recursive=TRUE, showWarnings=FALSE)
   source(file.path(working.directory, "foo.R"))
   gsea.exec <- file.path(working.directory, "gsea2-2.0.12.jar")
@@ -47,7 +48,10 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
   genesets.filen <- file.path(working.directory,gmt.file)
   gsea.out <- file.path(working.directory)    
   
-  #Applying GSEA function on all the file 
+  ##############################################
+  ### Applying GSEA function on all the file ###
+  ##############################################
+  
   #Setting every parallelizing parameter
   nbcore <- length(survival.score.list)
   availcore <- detectCores()
@@ -56,7 +60,7 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
   splitix <- splitIndices(nx=length(survival.score.list), ncl=nbcore)
   
   gsea.res <- mclapply(splitix, function(splitix2, ...) { 
-    gseatt <- gsea.prerank(exe.path=gsea.exec, gmt.path=genesets.filen, rank.path=rank.files[splitix2], gsea.collapse=FALSE, nperm=gsea.nperm, scoring.scheme="weighted", make.sets=TRUE, include.only.symbols=FALSE, plot.top.x=length(nrow(ranking.matrix)), set.max=max.geneset.size, set.min=min.geneset.size, zip.report=FALSE, gsea.out=gsea.out, replace.res=FALSE, gsea.seed=987654321)
+    gseatt <- gsea.prerank(exe.path=gsea.exec, gmt.path=genesets.filen, rank.path=rank.files[splitix2], gsea.collapse=FALSE, nperm=gsea.nperm, scoring.scheme="weighted", make.sets=TRUE, include.only.symbols=FALSE, plot.top.x=20, set.max=max.geneset.size, set.min=min.geneset.size, zip.report=FALSE, gsea.out=gsea.out, replace.res=FALSE, gsea.seed=987654321)
     ## results
     tt <- gseatt[[1]]  
     ## leading edge genes

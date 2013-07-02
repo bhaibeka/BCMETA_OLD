@@ -21,13 +21,35 @@ Merging <- function(gselist, STL, duplication.checker=TRUE, survdata=c("rfs", "d
   
   #Creating gene array containing all ENTREZID depending on the chosen method
   gene.id <- NULL
+  symbol <- NULL
+  #gene.symbol.comparison.matrix
+  GSCM <- NULL  
   for (i in 1:length(gselist)) {
     if (method == "intersect"){
-      if (i ==1){gene.id <- rownames(exprs(gselist[[i]]))}
-      else{gene.id <- intersect(rownames(exprs(gselist[[i]])), gene.id)} 
-    } else{gene.id <- c(gene.id, rownames(exprs(gselist[[i]])))}        
+      if (i ==1){
+        gene.id <- rownames(exprs(gselist[[i]]))
+        gene.id2 <- sapply(gene.id, function(x){strsplit(x, "\\.")[[1]][2]})
+        symbol <- Biobase::featureData(gselist[[i]])@data$SYMBOL[match(gene.id2,Biobase::featureData(gselist[[i]])@data$ENTREZID)]
+      }
+      else{
+        gene.id <- intersect(rownames(exprs(gselist[[i]])), gene.id)
+        gene.id2 <- sapply(gene.id, function(x){strsplit(x, "\\.")[[1]][2]})
+        symbol <- intersect(Biobase::featureData(gselist[[i]])@data$SYMBOL[match(gene.id2,Biobase::featureData(gselist[[i]])@data$ENTREZID)], symbol)
+      } 
+    } else{
+      gene.id <- c(gene.id, rownames(exprs(gselist[[i]])))
+      gene.id2 <- sapply(rownames(exprs(gselist[[i]])), function(x){strsplit(x, "\\.")[[1]][2]})
+      symbol <- c(symbol, Biobase::featureData(gselist[[i]])@data$SYMBOL[match(gene.id2,Biobase::featureData(gselist[[i]])@data$ENTREZID)])
+    }        
   }
-  if (method == "unique"){gene.id <- unique(gene.id)}  
+    
+  if (method == "unique"){
+    gene.id <- unique(gene.id)
+    GSCM <- cbind(gene.id,symbol)
+    index <- match(gene.id, GSCM[,1])
+    GSCM <- GSCM[index,]
+  }  
+  
   matrix.featureData <- as.matrix(gene.id)
   colnames(matrix.featureData) <- "ENTREZID"
   
@@ -57,12 +79,21 @@ Merging <- function(gselist, STL, duplication.checker=TRUE, survdata=c("rfs", "d
   matrix.exprs.name <- unique(matrix.exprs.name)
   rownames(matrix.exprs) <- matrix.exprs.name
   
+  ###### Scaling ########  
+  message("#######        rescaling in process       #######")
+  temp <- colnames(matrix.exprs)
+  matrix.exprs <- sapply(1:ncol(matrix.exprs),function(x){((genefu::rescale(matrix.exprs[,x],na.rm=TRUE,q=0.05))-0.5)*2})
+  matrix.exprs <- normalizeBetweenArrays(matrix.exprs) 
+  colnames(matrix.exprs) <- temp
+  message("#######       rescaling terminated        #######")
+  
   #######################################
   ######   Find duplicate option   ######
   #######################################
   if (duplication.checker){
     gene.treshold <- 1000
-    gene.var <- apply(matrix.exprs, 1, var)
+    gene.var <- lapply(1:nrow(matrix.exprs), function(x){var(matrix.exprs[x,], na.rm=TRUE)})
+    gene.var <- do.call(cbind, gene.var)
     #Most.Varian.Gene (MVG)
     index <- order(gene.var, decreasing=TRUE)[1:gene.treshold]
     #Matrix.of.Most.Variable.Gene (MMVG)
@@ -96,7 +127,7 @@ Merging <- function(gselist, STL, duplication.checker=TRUE, survdata=c("rfs", "d
     for (i in 1:ncol(cor.matrix)){
       if (!any(DEC == colnames(cor.matrix)[i])){
         #Duplicate.Checker (DC)        
-        DC <- which(!is.na(cor.matrix[ , i]) & cor.matrix[ , i] >= 0.95)
+        DC <- which(!is.na(cor.matrix[ , i]) & round(cor.matrix[ , i],digits=3) >= 0.96)
         if (length(DC) != 0){
           message(sprintf("%s is a duplicate of %s ", colnames(cor.matrix)[i], rownames(cor.matrix)[DC]))
           DEC <- c(DEC, rownames(cor.matrix)[DC])        
@@ -111,7 +142,7 @@ Merging <- function(gselist, STL, duplication.checker=TRUE, survdata=c("rfs", "d
     matrix.exprs <- temp1
     cor.matrix <- temp2
   }
-  
+
   #Creating master phenoData matrix and master subtype matrix
   if (duplication.checker==FALSE){ GSM.erase <- NULL }
   matrix.phenoData <- NULL 
@@ -151,12 +182,13 @@ Merging <- function(gselist, STL, duplication.checker=TRUE, survdata=c("rfs", "d
   ss <- survcomp::censor.time(surv.time=surv.time / 365, surv.event=surv.event, time.cens=time.cens)
   matrix.phenoData <- cbind(matrix.phenoData, "surv.time"=ss[[1]], "surv.event"=ss[[2]])
   
+  
   if (!is.null(GSM.erase)){
     #Rearranging the master phenoData matrix
     index <- match(GSM.erase, rownames(matrix.phenoData))
     matrix.phenoData <- matrix.phenoData[-index, , drop=FALSE]
     #Rearranging the master subtype matrix
-    index <- match(GSM.erase, rownames(matrix.subtype))
+    index <- na.exclude(match(GSM.erase, rownames(matrix.subtype)))
     matrix.subtype <- matrix.subtype[-index, , drop=FALSE]
   }
   
@@ -168,7 +200,7 @@ Merging <- function(gselist, STL, duplication.checker=TRUE, survdata=c("rfs", "d
   master.eset <- new("ExpressionSet", phenoData = phenoData, exprs = matrix.exprs)
   Biobase::featureData(master.eset) <- featureData
   
-  return(master.eset)
+  return(list("master.eset"=master.eset, "GSCM"=GSCM))
 }
          
   

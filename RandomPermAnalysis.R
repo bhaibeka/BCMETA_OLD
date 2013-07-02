@@ -1,33 +1,30 @@
-RandomPermAnalysis <- function(master.eset,inputfile,method,n.perm){
+RandomPermAnalysis <- function(master.eset, inputfile, method, n.perm){
+  
   #########################################
   #####   Creation of the metagene   ######
   #########################################
-  
-  #load("all_except_meta") 
-  rm(list=setdiff(ls(), "master.eset"))
   source(file.path("/stockage/homes/bachanp/Function/MetaGene.R"))
+  metagene.rank.masterlist <- metagene.mat.list <- prognostic.list <- list()  
   #Fixe variable
   data <- t(exprs(master.eset))
   annot <- Biobase::featureData(master.eset)  
-  #n.perm <- n.perm
-  n.perm <- 1000
   #Geneset sample gene first iteration
+  gene.mat.all <- read.m.file(inputfile)
   #gene.mat <- read.m.file(file.path("/home/bachanp/GMT and Signature file/signatures_human_orthologs.csv"))[[1]]
-  gene.mat.all <- read.m.file("modules_benchmark.csv")
-  for (k in 1:length(gene.mat.all)){
+  #gene.mat.all <- read.m.file("modules_benchmark.csv")
+  for (k in 1:length(gene.mat.all)){     
     gene.mat <- gene.mat.all[[k]]
-  
-    #gene.mat <- read.m.file(inputfile)[[1]]
-    #method <- method
-    method <-  "weighted.average"
     sample.genes <- paste("geneid.", gene.mat$EntrezGene.ID, sep="")
     sample.coef <- gene.mat$coefficient
     
-    sample.metagene <- MetaGene(genes=sample.genes, data=data, annot=annot, coefficients=sample.coef, method=method)[[1]]
-    
+    if (length(sample.genes) !=1){
+      sample.metagene <- MetaGene(genes=sample.genes, data=data, annot=annot, coefficients=sample.coef, method=method)[[1]]
+    }else{
+      sample.metagene <- MetaGene(genes=sample.genes, data=data, annot=annot, coefficients=sample.coef, method=method)      
+    }
+      
     #Random sample gene
-    randgene.length <- length(intersect(sample.genes, colnames(data)))
-    rand.genes <- sample.genes[1:randgene.length]
+    randgene.length <- length(intersect(sample.genes, colnames(data)))    
     
     library(parallel)
     
@@ -39,16 +36,27 @@ RandomPermAnalysis <- function(master.eset,inputfile,method,n.perm){
     splitix <- splitIndices(nx=n.perm, ncl=nbcore)
     
     #Metagene core function
-    rand.metagene <- mclapply(splitix, function(splitix2,...){  
-      sub.rand.metagene <- lapply(splitix2, function(x){
-        rand.coef <- runif(randgene.length,min(sample.coef),max(sample.coef))
-        subsub.rand.metagene <- MetaGene(genes=rand.genes, data=data, annot=annot, coefficients=rand.coef, method=method)[[1]]
-        return(subsub.rand.metagene)  
+    if (randgene.length !=1){
+      rand.metagene <- mclapply(splitix, function(splitix2,...){  
+        sub.rand.metagene <- lapply(splitix2, function(x){
+            rand.genes <- rownames(exprs(master.eset))[sample(1:nrow(exprs(master.eset)),randgene.length,replace=F)]
+            subsub.rand.metagene <- MetaGene(genes=rand.genes, data=data, annot=annot, coefficients=sample.coef, method=method)[[1]]
+          return(subsub.rand.metagene)  
+        })
+        sub.rand.metagene <- do.call(rbind, sub.rand.metagene)
       })
-      sub.rand.metagene <- do.call(rbind, sub.rand.metagene)
-    })
-    rand.metagene <- do.call(rbind, rand.metagene)
-    colnames(rand.metagene) <- colnames(exprs(master.eset))
+      rand.metagene <- do.call(rbind, rand.metagene)
+      colnames(rand.metagene) <- colnames(exprs(master.eset))
+    
+    }else{  
+      
+      index <- sample(1:nrow(exprs(master.eset)),n.perm,replace=F)
+      if (any(index==which(rownames(exprs(master.eset))==sample.genes))){
+        index<- index[-which(rownames(exprs(master.eset))==sample.genes)]
+        index <- c(index,1)
+        }    
+      rand.metagene <- exprs(master.eset)[index,]
+      }  
     
     metagene.mat <- rbind(sample.metagene, rand.metagene)
     ##############################################
@@ -83,17 +91,19 @@ RandomPermAnalysis <- function(master.eset,inputfile,method,n.perm){
       metagene.ranking <- do.call(rbind, metagene.ranking)
       metagene.ranking.list[[j]] <- metagene.ranking
     }
-    names(metagene.ranking.list) <- c("Global population", "Lums", "Basal", "Her2", "LumB", "LumA")
+    names(metagene.ranking.list) <- c("Global", "Lums", "Basal", "Her2", "LumB", "LumA")
     
     prog.mat <- NULL
     for (i in 1:length(metagene.ranking.list)){
       prog.mat[i] <- sum(metagene.ranking.list[[i]][-1, "p"] <= metagene.ranking.list[[i]][1, "p"]) / n.perm
     }  
-   
-    assign(paste("prog.mat",names(gene.mat.all)[k],sep="") <- cbind(names(metagene.ranking.list),prog.mat)    
+    prog.mat <- cbind(names(metagene.ranking.list), prog.mat)
+    metagene.mat.list[[k]] <- metagene.mat
+    prognostic.list[[k]]<- prog.mat    
+    metagene.rank.masterlist[[k]] <- metagene.ranking.list
   }
-  
-  return(list("metagena.ranking.list"=metagene.ranking.list, "metagene.mat"=metagene.mat))
+  names(prognostic.list) <- names(metagene.rank.masterlist) <- names(metagene.mat.list) <- names(gene.mat.all)[1:k]
+  return(list("metagene.rank.masterlist"=metagene.rank.masterlist, "metagene.mat.list"=metagene.mat.list,"prognostic.list"=prognostic.list))
 }
   
 

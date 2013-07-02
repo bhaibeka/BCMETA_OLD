@@ -1,4 +1,4 @@
-MetaGene <- function(genes, data, annot, coefficients, method=c("principal.component", "weighted.average"), na.rm=FALSE) {
+MetaGene <- function(genes, data, annot, coefficients, method=c("principal.component", "weighted.average"),na.rm=FALSE) {
   #Take a specify gene set and create a single metagene base it's the selected method
   #
   # Args:
@@ -9,7 +9,7 @@ MetaGene <- function(genes, data, annot, coefficients, method=c("principal.compo
   # Returns:     
   #     the metagene
   
-  if length(genes!=1){
+  if (length(genes)!=1){
     method <- match.arg(method)
     n0 <- length(genes)
     genes2 <- intersect(genes, colnames(data))

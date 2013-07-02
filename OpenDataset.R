@@ -1,108 +1,93 @@
-OpenDataset <- function(config.file,duplication.checker){
+OpenDataset <- function(config.file){
   #Open every GSE, specify in the configuration CSV, from InsilicoDB and create a list of Eset
   #structure call gselist
   #
   # Args:
   #   config.file: The string name of the configuration CSV file.
-  #   duplication.checker: A marker, either TRUE or FALSE if you you want to verify
-  #                        wheter or not you have duplicate sample into your master 
-  #                        gene expression matrix.
-  #   gene.treshold: If duplication.checker is TRUE, then the treshold is the number of most variable
-  #                  you want to consider for your correlation statistical analysis.
-  # Returns:
-  #   -if duplication.checker == TRUE, then the function returns:
-  #     The GSE list of the specify GSE number in the configuraiton CSV file, the master
-  #     gene expression matrix, the correlation matrix and the erased sample vector
-  #   -if duplication.checker == FALSE, then the function returns:
-  #     The GSE list of the specify GSE number in the configuraiton CSV file and the master
-  #     gene expression matrix
+  #   
+  # Returns:     
+  #     The GSE list of the specify GSE number in the configuraiton CSV file 
   
-    
-  require(inSilicoDb2)  
+  
+  require(inSilicoDb2)
+  require(genefu)
+  require(jetset)  
+  source(file.path("/stockage/homes/bachanp/Function/ProbeGeneMapping.R"))
+  source(file.path("/stockage/homes/bachanp/Function/PlatformMerging.R"))
+  
+  #login
   InSilicoLogin(login="bhaibeka@gmail.com", password="747779bec8a754b91076d6cc1f700831")
   #File.To.Open (FTO)
-  FTO <- read.csv(config.file) 
-  gselist <- list()
-  expr.rowname <- NULL
+  FTO <- read.csv(config.file)   
+  #FTO <- read.csv("GSE_Curation.csv")
+  gselist <- list() 
   counter <- 1
+  routine.hack1 <- NULL
+  
   #Opening all dataset from InsilicoDB
   for (i in 16:nrow(FTO)){
-    if (as.character(FTO[i,4])==TRUE){    
-      GPL <- getPlatforms(dataset=as.character(FTO[i,2]))[1]
-      gselist[[counter]] <- getDataset(dataset=as.character(FTO[i,2]), curation=FTO[i,3], platform=GPL)
-      expr.rowname <- c(expr.rowname, rownames(exprs(gselist[[counter]])))
-      counter <- counter+1
-    }
-  } 
-  InSilicoLogout()
-  #Eliminating all doubles to create a master gene vector
-  expr.rowname <- unique(expr.rowname)
-  
-  #Merging all the genes expressions of all GSE for all samples into
-  #one master matrix whom each row are matching with the master gene vector
-  for (i in 1:length(gselist)){
-    temp <- matrix(NA,length(expr.rowname),ncol(exprs(gselist[[i]])))
-    rownames(temp) <- expr.rowname
-    colnames(temp) <- colnames(exprs(gselist[[i]]))
-    matcher <- match(rownames(exprs(gselist[[i]])),expr.rowname)  
-    temp[matcher,1:ncol(exprs(gselist[[i]]))]=exprs(gselist[[i]])
-    if (i==1){
-      matrix.exprs <- temp
-    } else{
-      matrix.exprs <- cbind(matrix.exprs,temp)
-    }
-  }
-  
-  # Find duplicate option
-  if (duplication.checker==TRUE){
-    gene.treshold <- 3000
-    gene.var <- apply(matrix.exprs,1,var)
-    #Most.Varian.Gene (MVG)
-    MVG <- names(sort(gene.var, decreasing=TRUE)[1:gene.treshold])
-    index <- match(MVG,rownames(matrix.exprs))
-    #Matrix.of.Most.Variable.Gene (MMVG)
-    MMVG <- matrix.exprs[index,]
-    cor.matrix <- cor(MMVG) 
-    ending <- ncol(cor.matrix)
-    temp1 <- matrix.exprs
-    temp2 <- cor.matrix
-    #Double.Erase.Checker (DEC)
-    DEC <- NULL
-    GSM.erase <- NULL
-    for (i in 1:ending){
-      if (!any(DEC == colnames(cor.matrix)[i])){
-        #Duplicate.Checker (DC)
-        DC <- which(cor.matrix[,i]>0.95 & cor.matrix[,i]<0.999)
-        if (length(DC)!=0){
-          print(sprintf("%s is a duplicate of %s",colnames(cor.matrix)[i],rownames(cor.matrix)[DC]))
-          DEC <- c(DEC, rownames(cor.matrix)[DC])        
-          GSM.erase <- c(GSM.erase, (colnames(cor.matrix)[i]))
-          #Index.to.Delete (ID)
-          ID <- which(colnames(temp1)==colnames(cor.matrix)[i])
-          temp1 <- temp1[,-ID]        
-          temp2 <- temp2[-i, -i]                  
-        }
+    if (as.character(FTO[i,4])==TRUE){  
+      if (as.character(FTO[i,2])=="GSE2034" || as.character(FTO[i,2])=="GSE5327"){
+        routine.hack1 <- rbind(routine.hack1, c(as.character(FTO[i,2]), counter))
       }
+      GPL <- getPlatforms(dataset=as.character(FTO[i,2]))
+      temp <- getDatasets(dataset=as.character(FTO[i,2]), norm=as.character(FTO[i,6]), curation=FTO[i,3], features="PROBE")
+      for (j in 1:length(GPL)){
+        gselist[[counter]] <- temp[[j]]
+        #making probe gene mapping for Affy structure
+        if (as.character(FTO[i,5])=="Affy"){gselist[[counter]] <- ProbeGeneMapping(gselist[[counter]])}        
+        else{
+          rownames(exprs(gselist[[counter]])) <- paste("geneid.",Biobase::featureData(gselist[[counter]])$ENTREZID, sep="")
+          index <- match(pData(gselist[[counter]])$id, colnames(exprs(gselist[[counter]])))
+          exprs(gselist[[counter]]) <- exprs(gselist[[counter]])[,index]
+          rownames(pData(gselist[[counter]])) <- as.character(pData(gselist[[counter]])$id)
+        }        
+        counter <- counter +1        
+      }
+      #Merging dataset if they're on different platforms
+      if (length(GPL) > 1){
+        index <- length(gselist)-(length(GPL)-1)
+        gselist[[index]] <- PlatformMerging(gselist=gselist, GPL.length=length(GPL))
+        for (k in 1:length(gselist)){gselist[[index+k]] <- NULL}
+        counter <- counter - (length(GPL)-1)
+      }
+    } 
+  }
+  
+  if (!is.null(routine.hack1)){
+    if (nrow(routine.hack1)==2){
+      exprs(gselist[[as.numeric(routine.hack1[1,2])]]) <- cbind(exprs(gselist[[as.numeric(routine.hack1[1,2])]]), exprs(gselist[[as.numeric(routine.hack1[2,2])]]))
+      phenoData(gselist[[as.numeric(routine.hack1[1,2])]])@data <- rbind(phenoData(gselist[[as.numeric(routine.hack1[1,2])]])@data, phenoData(gselist[[as.numeric(routine.hack1[2,2])]])@data)
+      gselist[[as.numeric(routine.hack1[2,2])]] <- NULL
     }
-    matrix.exprs <- temp1
-    cor.matrix <- temp2
   }
   
-  
-  #Clinical Info Standard (CIS)
-  CIS <- c("tissue", "age", "node", "treatment", "pgr", "grade", "platform", 
-        "size", "er", "t.rfs", "e.rfs", "id", "series", "her2", "t.dmfs", 
-        "e.dmfs")
-  # Error handling
-  for (i in 1:length(gselist)){    
-    if (any(varLabels(gselist[[i]]) != CIS) == TRUE){
-      warning(sprintf("the %s dataset as been incorrectly curated", FTO[i,2]))
+  #Making sure that every column of the clinical data matrix is well aligned for every GSE dataset
+  for (i in 1:length(gselist)){ 
+    index=match(colnames(exprs(gselist[[i]])),rownames(pData(gselist[[i]])))    
+    phenoData(gselist[[i]])@data <- phenoData(gselist[[i]])@data[index, ]
+    
+    #take only the breast cancer data if GSE containt more than 1 type of cancer
+    if (any(colnames(pData(gselist[[i]]))=="Anatomical site")){
+      index <- which(pData(gselist[[i]])$Anatomical=="breast")
+      phenoData(gselist[[i]])@data <- phenoData(gselist[[i]])@data[index, ]
+      exprs(gselist[[i]]) <- exprs(gselist[[i]])[ ,index]                     
     }
+    
+    #Elimate NILL patient
+    temp <- pData(gselist[[i]])
+    temp$platform <- NULL
+    for (j in 1:nrow(temp)){        
+      if (all(temp[j,]=="NILL")){        
+        exprs(gselist[[i]]) <- exprs(gselist[[i]])[,-j]
+        phenoData(gselist[[i]])@data <- phenoData(gselist[[i]])@data[-j,]
+      }      
+    }
+    phenoData(gselist[[i]])@data<- phenoData(gselist[[i]])@data[,match(colnames(phenoData(gselist[[1]])@data),colnames(phenoData(gselist[[i]])@data))]    
+    colnames(Biobase::featureData(gselist[[i]])@data) <- c("ENTREZID", "SYMBOL", "PROBE")
   }
   
-  if (duplication.checker == TRUE){
-    return(list("gselist"=gselist, "matrix.exprs"=matrix.exprs, "cor.matrix"=cor.matrix, "GSM.erase"=GSM.erase))
-  } else{
-    return(list("gselist"=gselist, "matrix.exprs"=matrix.exprs))
-  }
+  #logout
+  InSilicoLogout() 
+  return(gselist)
 }
