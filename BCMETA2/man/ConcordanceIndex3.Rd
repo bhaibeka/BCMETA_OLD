@@ -4,7 +4,7 @@
 Concordance index.
 }
 \description{
-Takes expression gene matrix as input along with an survival time and survival event vector and calculated the survival corcondance index for every gene in the expression gene matrix for each molecular subtype. Note that strat and weight are optionnal vector that enable the user to stratify for subgroup of survival data and the weight vector is the molecular subtype weight.
+Takes expression gene matrix as input along with an survival time and survival event vector and calculates the survival corcondance index for every gene in the expression gene matrix for each molecular subtype. Note that strat is an optionnal vector that enable the user to stratify for a subgroup of survival data.
 }
 \usage{
 ConcordanceIndex3(exprs.matrix, stime, sevent, strat, weights)
@@ -12,7 +12,7 @@ ConcordanceIndex3(exprs.matrix, stime, sevent, strat, weights)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{exprs.matrix}{
-Is the expression gene matrix that containt every gene expression. The row names should be the geneid.#### and the column names should be the patient ID
+Is the expression gene matrix that contains every gene expression. The row names should be the geneid.#### and the column names should be the patient ID.
 }
   \item{stime}{
 A vector of survival time (either dmfs, rfs, os or the hybrid dfs)
