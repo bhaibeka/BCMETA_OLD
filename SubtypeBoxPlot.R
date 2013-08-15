@@ -1,4 +1,4 @@
-SubtypeBoxPlot <- function(master.eset,Wilcox.test,modified.master.eset){
+SubtypeBoxPlot <- function(master.eset,Wilcox.test,modified.master.eset,output.file){
   
   #######   Indexation of everything   #########
   
@@ -28,7 +28,7 @@ SubtypeBoxPlot <- function(master.eset,Wilcox.test,modified.master.eset){
   list.index <- list(list.index$Basal,list.index$Her2,list.index$LumB,list.index$LumA,list.index$Lums, list.index$Global)
   names(list.index) <-c("Basal", "Her2","LumB","LumA","Lums","Global")
   
-  pdf("Subtypedependence.pdf")
+  pdf(output.file)
   for (i in 1:nrow(Wilcox.test)){
     Basal <- exprs(modified.master.eset)[Wilcox.test[i,1],list.index[[1]]]
     Her2 <- exprs(modified.master.eset)[Wilcox.test[i,1],list.index[[2]]]
@@ -37,7 +37,7 @@ SubtypeBoxPlot <- function(master.eset,Wilcox.test,modified.master.eset){
     Lums <- exprs(modified.master.eset)[Wilcox.test[i,1],list.index[[5]]]
     Global <- exprs(modified.master.eset)[Wilcox.test[i,1],list.index[[6]]]
   
-    boxplot(Basal, Her2,LumB,LumA,Lums,Global, names=c("Basal", "Her2","LumB","LumA","Lums","Global"), xlab="Subtype", ylab="Metagene expression",main=sprintf("Subtype dependance of gene %s",Wilcox.test[i,1]))
+    boxplot(Basal, Her2,LumB,LumA,Lums,Global, names=c("Basal", "Her2","LumB","LumA","Lums","Global"), xlab="Subtype", ylab="Metagene expression",main=sprintf("Subtype dependance of metagene %s",Wilcox.test[i,1]))
         
   }
   dev.off()

@@ -1,4 +1,4 @@
-OpenDataset <- function(config.file){
+OpenDataset2 <- function(config.file){
   #Open every GSE, specify in the configuration CSV, from InsilicoDB and create a list of Eset
   #structure call gselist
   #
@@ -11,7 +11,7 @@ OpenDataset <- function(config.file){
   
   require(inSilicoDb2)
   require(genefu)
-  require(jetset)  
+  library(jetset.bhk) 
   source(file.path("/stockage/homes/bachanp/Function/ProbeGeneMapping.R"))
   source(file.path("/stockage/homes/bachanp/Function/PlatformMerging.R"))
   
@@ -33,15 +33,9 @@ OpenDataset <- function(config.file){
       GPL <- getPlatforms(dataset=as.character(FTO[i,2]))
       temp <- getDatasets(dataset=as.character(FTO[i,2]), norm=as.character(FTO[i,6]), curation=FTO[i,3], features="PROBE")
       for (j in 1:length(GPL)){
+        if (as.character(FTO[i,5])!="Affy"){rownames(pData(temp[[j]])) <-as.character(pData(temp[[j]])$id)} 
         gselist[[counter]] <- temp[[j]]
-        #making probe gene mapping for Affy structure
-        if (as.character(FTO[i,5])=="Affy"){gselist[[counter]] <- ProbeGeneMapping(gselist[[counter]])}        
-        else{
-          rownames(exprs(gselist[[counter]])) <- paste("geneid.",Biobase::featureData(gselist[[counter]])$ENTREZID, sep="")
-          index <- match(pData(gselist[[counter]])$id, colnames(exprs(gselist[[counter]])))
-          exprs(gselist[[counter]]) <- exprs(gselist[[counter]])[,index]
-          rownames(pData(gselist[[counter]])) <- as.character(pData(gselist[[counter]])$id)
-        }        
+        gselist[[counter]] <- ProbeGeneMapping2(gselist[[counter]])        
         counter <- counter +1        
       }
       #Merging dataset if they're on different platforms
@@ -63,7 +57,7 @@ OpenDataset <- function(config.file){
   }
   
   #Making sure that every column of the clinical data matrix is well aligned for every GSE dataset
-  for (i in 1:length(gselist)){ 
+  for (i in 1:length(gselist)){     
     index=match(colnames(exprs(gselist[[i]])),rownames(pData(gselist[[i]])))    
     phenoData(gselist[[i]])@data <- phenoData(gselist[[i]])@data[index, ]
     

@@ -43,7 +43,7 @@ GseaAnalysis <- function(survival.score.list, gmt.file, matrix.subtype){
   source(file.path(working.directory, "foo.R"))
   gsea.exec <- file.path(working.directory, "gsea2-2.0.12.jar")
   gsea.nperm <- 1000
-  min.geneset.size <- 15
+  min.geneset.size <- 10
   max.geneset.size <- 500
   genesets.filen <- file.path(working.directory,gmt.file)
   gsea.out <- file.path(working.directory)    
